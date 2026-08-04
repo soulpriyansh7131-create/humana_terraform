@@ -38,10 +38,6 @@ permissions:
 
 env:
   TERRAFORM_VERSION: '1.6.0'
-  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  ARM_USE_OIDC: true
 
 jobs:
   fmt-and-validate:
@@ -84,13 +80,17 @@ jobs:
     needs: fmt-and-validate
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')) || (github.event_name == 'workflow_dispatch' && inputs.action != 'destroy')
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: 'true'
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
-        if: ${{ secrets.AZURE_CLIENT_ID != '' }}
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -128,14 +128,18 @@ jobs:
     needs: plan
     runs-on: ubuntu-latest
     if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action == 'apply'))
-    environment: ${{ inputs.environment || 'dev' }}
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: 'true'
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
-        if: ${{ secrets.AZURE_CLIENT_ID != '' }}
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -161,14 +165,18 @@ jobs:
     name: 'Terraform Destroy'
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && inputs.action == 'destroy'
-    environment: ${{ inputs.environment }}
+    environment: ${{ github.event.inputs.environment }}
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: 'true'
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
-        if: ${{ secrets.AZURE_CLIENT_ID != '' }}
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
